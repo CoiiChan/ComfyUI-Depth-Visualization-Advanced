@@ -30,7 +30,7 @@ An enhanced ComfyUI depth map visualization tool that supports depth map preview
   - 截图分辨率：支持 512×2^n 分辨率设置 | Screenshot Resolution: Support 512×2^n resolution settings
   - 自动缓存：保存历史生成的 Quilt 图像 | Auto Cache: Save historically generated Quilt images
   - 批量生成：支持从缓存中批量生成 Quilt 图像 | Batch Generation: Support batch generation from cache
-  - 
+    
 ![UI](https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced/blob/main/example/UI.png)
 
 ### 3. 视觉优化 | Visual Optimization
