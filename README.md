@@ -3,7 +3,7 @@
 一个增强版的 ComfyUI 深度图可视化工具，支持深度图预览、3D 场景交互和 Quilt 图像生成。
 An enhanced ComfyUI depth map visualization tool that supports depth map preview, 3D scene interaction, and Quilt image generation.
 
-![Preview](https://github.com/gokayfem/ComfyUI-Depth-Visualization/assets/88277926/0b63c2ed-60d4-44a6-9d44-b3548ec58d48)
+![Preview](https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced/blob/main/example/RGBD2QuiltsExample.png)
 
 ## 主要功能 | Main Features
 
