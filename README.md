@@ -6,7 +6,7 @@ An enhanced ComfyUI depth map visualization tool that supports depth map preview
 ![Preview](https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced/blob/main/example/RGBD2QuiltsExample.png)
 
 ## 主要功能 | Main Features
-
+![UI](https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced/blob/main/example/UI.png)
 ### 1. 深度图可视化 | Depth Map Visualization
 - 实时预览深度图效果 | Real-time depth map preview
 - 支持任意深度图输入 | Support for any depth map input
@@ -96,16 +96,9 @@ git clone https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced.git
 本项目基于以下项目开发 | This project is based on:
 
 1. [ComfyUI-Depth-Visualization](https://github.com/gokayfem/ComfyUI-Depth-Visualization)
-   - 作者 | Author：gokayfem
-   - 许可证 | License：GPL-3.0
-   - 提供了基础的深度图可视化功能 | Provides basic depth map visualization functionality
-
 2. [comfyui-mixlab-nodes](https://github.com/MixLabPro/comfyui-mixlab-nodes)
-   - 作者 | Author：MixLabPro
-   - 许可证 | License：MIT
-   - 提供了部分 UI 控制功能 | Provides partial UI control functionality
 
 ## 许可证 | License
 
-本项目采用 GPL-3.0 许可证。详见 [LICENSE](LICENSE.txt) 文件。
-This project is licensed under GPL-3.0. See [LICENSE](LICENSE.txt) file for details.
+本项目采用 GPL-3.0 许可证。
+This project is licensed under GPL-3.0. 
