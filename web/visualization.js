@@ -1,145 +1,252 @@
 import { app } from "../../scripts/app.js"
 import { api } from '../../scripts/api.js'
-import { config } from './config.js'
 
-// 等待 config 加载完成
-let configLoaded = false;
-const waitForConfig = () => {
-    if (config && config.defaults) {
-        configLoaded = true;
-        return true;
-    }
-    return false;
-}
-
-// 初始化函数
-const initializeVisualizer = () => {
-    if (!waitForConfig()) {
-        console.log('[Visualizer] Waiting for config to load...');
-        setTimeout(initializeVisualizer, 100);
-        return;
-    }
-    
-    console.log('[Visualizer] Config loaded, initializing...');
-    
-    app.registerExtension({
-        name: config.extensionName,
-        async beforeRegisterNodeDef(nodeType, nodeData, app) {
-            registerVisualizer(nodeType, nodeData, config.node.name, 'threeVisualizer')
+// 硬编码配置
+const config = {
+    paths: {
+        extension: '/extensions/ComfyUI-Depth-Visualization-advanced',
+        html: '/extensions/ComfyUI-Depth-Visualization-advanced/html'
+    },
+    extensionName: 'ORANGESILVER.DepthViewerAndQuilts',
+    node: {
+        name: 'DepthViewerAndQuilts',
+        defaultSize: [600, 500],
+        minSize: {
+            width: 600,
+            height: 500
+        }
+    },
+    controlPanel: {
+        width: 200,
+        background: 'rgba(0, 0, 0, 0.75)',
+        padding: 10,
+        borderRadius: 5,
+        zIndex: 1000,
+        defaultScale: 0.01,
+        scales: {
+            large: {
+                minDimension: 800,
+                scale: 1.25
+            },
+            medium: {
+                minDimension: 600,
+                scale: 1.0
+            },
+            small: {
+                minDimension: 400,
+                scale: 0.6
+            },
+            tiny: {
+                minDimension: 300,
+                scale: 0.5
+            }
+        }
+    },
+    defaults: {
+        depthStrength: 1.5,
+        dofStrength: 0.5,
+        focusDistance: 0.95,
+        zOffset: 0.0,
+        quiltsNum: 4,
+        quiltsAngleRange: 14,
+        screenshotSize: 1,
+        cameraFOV: 7,
+    },
+    sliders: {
+        depthStrength: {
+            min: 0,
+            max: 2,
+            step: 0.1,
+            label: '深度强度'
         },
-        nodeCreated(node, app) {
-            console.log('[DepthViewerAndQuilts] Node created:', node.id)
-            
-            setTimeout(() => {
-                let widget = node.widgets?.filter(w => w.name == 'previewRGBD')[0]
-                let framesWidget = node.widgets?.filter(w => w.name == 'frames')[0]
+        dofStrength: {
+            min: 0,
+            max: 1,
+            step: 0.1,
+            label: '景深强度'
+        },
+        focusDistance: {
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: '对焦点'
+        },
+        zOffset: {
+            min: -5,
+            max: 5,
+            step: 0.1,
+            label: '轴心偏移'
+        },
+        cameraFOV: {
+            min: 5,
+            max: 120,
+            step: 1,
+            label: '相机FOV角'
+        },
+        quiltsNum: {
+            min: 1,
+            max: 48,
+            step: 1,
+            label: 'Quilts数量'
+        },
+        quiltsAngleRange: {
+            min: 2,
+            max: 180,
+            step: 1,
+            label: 'Quilt角度差'
+        },
+        screenshotSize: {
+            min: 0,
+            max: 3,
+            step: 1,
+            label: '截图分辨率',
+            getValue: (index) => 512 * Math.pow(2, index)
+        }
+    },
+    buttons: {
+        resetView: {
+            text: '回正视图',
+            style: {
+                padding: '8px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                width: '100%',
+                marginBottom: '10px'
+            }
+        },
+        quiltsCapture: {
+            text: '开始QuiltsCapture',
+            style: {
+                padding: '8px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                width: '100%',
+                marginTop: '10px'
+            }
+        }
+    }
+};
+
+// 删除config加载检查相关代码
+app.registerExtension({
+    name: config.extensionName,
+    async beforeRegisterNodeDef(nodeType, nodeData, app) {
+        registerVisualizer(nodeType, nodeData, config.node.name, 'threeVisualizer')
+    },
+    nodeCreated(node, app) {
+        console.log('[DepthViewerAndQuilts] Node created:', node.id)
         
-                console.log('[DepthViewerAndQuilts] Widgets found:', {
-                    preview3d: !!widget,
-                    frames: !!framesWidget
-                })
-        
-                if (node.type === 'DepthViewerAndQuilts' && widget) {
-                    let nodeId = node.id
-                    console.log('[DepthViewerAndQuilts] Setting up iframe for node:', nodeId)
-                    
-                    //延迟才能获得this.id
-                    widget.visualizer.querySelector('iframe').src += '?id=' + nodeId
-                    console.log('[DepthViewerAndQuilts] iframe src updated:', widget.visualizer.querySelector('iframe').src)
-                    
-                    // 添加消息监听器
-                    window.addEventListener('message', async event => {
-                        console.log('[DepthViewerAndQuilts] Message received:', {
-                            source: event.source,
-                            origin: event.origin,
-                            data: event.data
-                        })
-                        
-                        try {
-                            // 检查消息的来源，确保消息来自可信的源
-                            if (!event.data || !event.data.id || !event.data.imgs) {
-                                console.error('[DepthViewerAndQuilts] Invalid message format:', event.data)
-                                return
-                            }
-            
-                            const { id, imgs } = event.data
-                            console.log('[DepthViewerAndQuilts] Processing message:', {
-                                receivedId: id,
-                                nodeId: nodeId,
-                                imagesCount: imgs?.length
-                            })
-                            
-                            // 验证节点ID - 转换为相同类型进行比较
-                            if (String(id) !== String(nodeId)) {
-                                console.log('[DepthViewerAndQuilts] Message ID mismatch:', {
-                                    received: id,
-                                    expected: nodeId,
-                                    receivedType: typeof id,
-                                    expectedType: typeof nodeId
-                                })
-                                return
-                            }
-            
-                            // 初始化frames控件
-                            framesWidget.value = { images: [] }
-                            console.log('[DepthViewerAndQuilts] Frames widget initialized')
-            
-                            // 处理每张图片
-                            for (let i = 0; i < imgs.length; i++) {
-                                const base64Image = imgs[i]
-                                try {
-                                    console.log(`[DepthViewerAndQuilts] Processing image ${i + 1}/${imgs.length}`)
-                                    
-                                    // 验证base64数据
-                                    if (!base64Image || typeof base64Image !== 'string') {
-                                        console.error(`[DepthViewerAndQuilts] Invalid base64 data for image ${i + 1}`)
-                                        continue
-                                    }
-            
-                                    // 上传图片并获取URL
-                                    console.log(`[DepthViewerAndQuilts] Uploading image ${i + 1}`)
-                                    const file = await uploadBase64ToFile(base64Image)
-                                    
-                                    // 验证返回的文件数据
-                                    if (!file || !file.name) {
-                                        console.error(`[DepthViewerAndQuilts] Invalid file data for image ${i + 1}:`, file)
-                                        continue
-                                    }
-            
-                                    console.log(`[DepthViewerAndQuilts] Image ${i + 1} uploaded successfully:`, file.name)
-                                    
-                                    // 添加到frames控件
-                                    framesWidget.value.images.push(file)
-                                } catch (error) {
-                                    console.error(`[DepthViewerAndQuilts] Error processing image ${i + 1}:`, error)
-                                }
-                            }
-            
-                            // 触发更新
-                            framesWidget.value._seed = Math.random()
-                            node.title = 'Input #' + framesWidget.value.images.length
-                            console.log('[DepthViewerAndQuilts] Update completed:', {
-                                imagesCount: framesWidget.value.images.length,
-                                newTitle: node.title
-                            })
-            
-                            // 触发节点更新
-                            node.setDirtyCanvas(true, true)
-                            console.log('[DepthViewerAndQuilts] Canvas marked as dirty')
-                        } catch (error) {
-                            console.error('[DepthViewerAndQuilts] Error in message handler:', error)
-                        }
+        setTimeout(() => {
+            let widget = node.widgets?.filter(w => w.name == 'previewRGBD')[0]
+            let framesWidget = node.widgets?.filter(w => w.name == 'frames')[0]
+    
+            console.log('[DepthViewerAndQuilts] Widgets found:', {
+                preview3d: !!widget,
+                frames: !!framesWidget
+            })
+    
+            if (node.type === 'DepthViewerAndQuilts' && widget) {
+                let nodeId = node.id
+                console.log('[DepthViewerAndQuilts] Setting up iframe for node:', nodeId)
+                
+                widget.visualizer.querySelector('iframe').src += '?id=' + nodeId
+                console.log('[DepthViewerAndQuilts] iframe src updated:', widget.visualizer.querySelector('iframe').src)
+                
+                // 添加消息监听器
+                window.addEventListener('message', async event => {
+                    console.log('[DepthViewerAndQuilts] Message received:', {
+                        source: event.source,
+                        origin: event.origin,
+                        data: event.data
                     })
                     
-                    console.log('[DepthViewerAndQuilts] Message listener setup completed')
-                }
-            }, 1000)
-        }
-    });
-}
-
-// 启动初始化
-initializeVisualizer();
+                    try {
+                        // 检查消息的来源，确保消息来自可信的源
+                        if (!event.data || !event.data.id || !event.data.imgs) {
+                            console.error('[DepthViewerAndQuilts] Invalid message format:', event.data)
+                            return
+                        }
+        
+                        const { id, imgs } = event.data
+                        console.log('[DepthViewerAndQuilts] Processing message:', {
+                            receivedId: id,
+                            nodeId: nodeId,
+                            imagesCount: imgs?.length
+                        })
+                        
+                        // 验证节点ID - 转换为相同类型进行比较
+                        if (String(id) !== String(nodeId)) {
+                            console.log('[DepthViewerAndQuilts] Message ID mismatch:', {
+                                received: id,
+                                expected: nodeId,
+                                receivedType: typeof id,
+                                expectedType: typeof nodeId
+                            })
+                            return
+                        }
+        
+                        // 初始化frames控件
+                        framesWidget.value = { images: [] }
+                        console.log('[DepthViewerAndQuilts] Frames widget initialized')
+        
+                        // 处理每张图片
+                        for (let i = 0; i < imgs.length; i++) {
+                            const base64Image = imgs[i]
+                            try {
+                                console.log(`[DepthViewerAndQuilts] Processing image ${i + 1}/${imgs.length}`)
+                                
+                                // 验证base64数据
+                                if (!base64Image || typeof base64Image !== 'string') {
+                                    console.error(`[DepthViewerAndQuilts] Invalid base64 data for image ${i + 1}`)
+                                    continue
+                                }
+            
+                                // 上传图片并获取URL
+                                console.log(`[DepthViewerAndQuilts] Uploading image ${i + 1}`)
+                                const file = await uploadBase64ToFile(base64Image)
+                                
+                                // 验证返回的文件数据
+                                if (!file || !file.name) {
+                                    console.error(`[DepthViewerAndQuilts] Invalid file data for image ${i + 1}:`, file)
+                                    continue
+                                }
+            
+                                console.log(`[DepthViewerAndQuilts] Image ${i + 1} uploaded successfully:`, file.name)
+                                
+                                // 添加到frames控件
+                                framesWidget.value.images.push(file)
+                            } catch (error) {
+                                console.error(`[DepthViewerAndQuilts] Error processing image ${i + 1}:`, error)
+                            }
+                        }
+        
+                        // 触发更新
+                        framesWidget.value._seed = Math.random()
+                        node.title = 'Input #' + framesWidget.value.images.length
+                        console.log('[DepthViewerAndQuilts] Update completed:', {
+                            imagesCount: framesWidget.value.images.length,
+                            newTitle: node.title
+                        })
+        
+                        // 触发节点更新
+                        node.setDirtyCanvas(true, true)
+                        console.log('[DepthViewerAndQuilts] Canvas marked as dirty')
+                    } catch (error) {
+                        console.error('[DepthViewerAndQuilts] Error in message handler:', error)
+                    }
+                })
+                
+                console.log('[DepthViewerAndQuilts] Message listener setup completed')
+            }
+        }, 1000)
+    }
+});
 
 function base64ToBlobFromURL (base64URL, contentType) {
     return fetch(base64URL).then(response => response.blob())
@@ -192,6 +299,7 @@ class Visualizer {
         this.depthStrength = config.defaults.depthStrength;
         this.dofStrength = config.defaults.dofStrength;
         this.focusDistance = config.defaults.focusDistance;
+        this.cameraFOV = config.defaults.cameraFOV;
 
         // 创建控制面板容器
         this.controlPanel = document.createElement('div')
@@ -299,10 +407,24 @@ class Visualizer {
             }
         );
 
+        // 添加相机FOV控制
+        const fovControl = this.createSliderControl(
+            'cameraFOV',
+            config.sliders.cameraFOV,
+            (value) => {
+                this.cameraFOV = value;
+                this.iframe.contentWindow.postMessage({
+                    type: 'updateCameraFOV',
+                    value: value
+                }, '*');
+            }
+        );
+
         this.controlPanel.appendChild(depthControl)
         this.controlPanel.appendChild(dofControl)
         this.controlPanel.appendChild(focusControl)
         this.controlPanel.appendChild(zOffsetControl)
+        this.controlPanel.appendChild(fovControl)
 
         // 添加Quilts控制
         const quiltsControl = document.createElement('div')

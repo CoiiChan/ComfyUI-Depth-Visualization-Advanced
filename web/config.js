@@ -51,13 +51,14 @@ export const config = {
 
     // Initial values for parameter 参数初始值
     defaults: {
-        depthStrength: 1.0,
-        dofStrength: 0.0,
-        focusDistance: 0.0,
+        depthStrength: 1.5,
+        dofStrength: 0.5,
+        focusDistance: 0.95,
         zOffset: 0.0,
-        quiltsNum: 2,
+        quiltsNum: 4,
         quiltsAngleRange: 14,
-        screenshotSize: 0  // 0 代表 512 * 2^0 = 512
+        screenshotSize: 1,  // 0 代表 512 * 2^0 = 512
+        cameraFOV: 7,
     },
 
     // Slider control settings 滑块控制设置
@@ -77,7 +78,7 @@ export const config = {
         focusDistance: {
             min: 0,
             max: 1,
-            step: 0.1,
+            step: 0.01,
             label: '对焦点'
         },
         zOffset: {
@@ -85,6 +86,12 @@ export const config = {
             max: 5,
             step: 0.1,
             label: '轴心偏移'
+        },
+        cameraFOV: {
+            min: 5,  // 修改最小值为5度
+            max: 120,
+            step: 1,
+            label: '相机FOV角'
         },
         quiltsNum: {
             min: 1,

@@ -3,12 +3,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 let apiURL = '';
-let currentDepthStrength = 1.0;
+let currentDepthStrength = 1.5;
 let currentDofStrength = 0.0;
 let currentFocusDistance = 0.0;
 let currentZOffset = 0.0; // 添加Z轴偏移变量
 let currentDepthMesh = null;
-const BASE_CAMERA_DISTANCE = 13.5; // 修改基础相机距离为13.5
+const BASE_CAMERA_DISTANCE = 5.0; // 修改基础相机距离为5（fov90时）
 let currentScreenshotSize = 1024; // 默认截图尺寸
 
 // 添加Quilts相关变量
@@ -75,6 +75,10 @@ window.addEventListener('message', function(event) {
             const finalZOffset = currentZOffset - (currentDepthStrength * 5 / 2);
             currentDepthMesh.position.z = finalZOffset;
         }
+    } else if (event.data.type === 'updateCameraFOV') {
+        // 更新相机FOV
+        camera.fov = event.data.value;
+        camera.updateProjectionMatrix();
     }
 }, false);
 
@@ -167,7 +171,7 @@ scene.add(axesHelper);
 
 const ambientLight = new THREE.AmbientLight(0xffffff);
 
-const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(7, 1, 0.1, 1000); // 设置默认FOV为7度
 camera.position.set(0, 0, 10);
 const pointLight = new THREE.PointLight(0xffffff, 15);
 camera.add(pointLight);
@@ -242,7 +246,13 @@ const onError = function (e) {
 // 修改自适应回正函数
 function resetView(depthStrength) {
     const maxDisplacement = 2.5 * depthStrength;
-    const cameraDistance = BASE_CAMERA_DISTANCE + maxDisplacement + currentZOffset;
+    
+    // 计算基于FOV的相机回正距离补偿
+    const fovRadians = THREE.MathUtils.degToRad(camera.fov);
+    const fovCompensation = 1 / Math.tan(fovRadians / 2);
+    
+    // 基础距离 * FOV补偿系数
+    const cameraDistance = (BASE_CAMERA_DISTANCE* fovCompensation) + (maxDisplacement * 0.5) + currentZOffset ;
     
     // 重置相机位置和旋转
     camera.position.set(0, 0, cameraDistance);
@@ -367,13 +377,21 @@ async function main(referenceImageParams, depthMapParams) {
                     vec4 color = vec4(0.0);
                     float total = 0.0;
                     
-                    // 使用更高效的采样模式
-                    float weights[5] = float[5](0.227027, 0.316216, 0.070270, 0.008491, 0.000000);
-                    float offsets[5] = float[5](0.0, 1.0, 2.0, 3.0, 4.0);
+                    // 使用高斯函数计算权重
+                    float sigma = 4.0; // 控制高斯分布的宽度
+                    float weights[8];
+                    float offsets[8];
+                    
+                    // 计算权重和偏移
+                    for(int i = 0; i < 8; i++) {
+                        offsets[i] = float(i);
+                        // 高斯函数: exp(-(x^2)/(2*sigma^2))
+                        weights[i] =0.005 + exp(-(float(i) * float(i)) / (2.0 * sigma * sigma));
+                    }
                     
                     // 水平方向
-                    for(int i = 0; i < 5; i++) {
-                        float offset = offsets[i] * blurFactor * 0.015;
+                    for(int i = 0; i < 8; i++) {
+                        float offset = offsets[i] * blurFactor * 0.005;
                         color += texture2D(tex, uv + vec2(offset, 0.0)) * weights[i];
                         color += texture2D(tex, uv - vec2(offset, 0.0)) * weights[i];
                         total += weights[i] * 2.0;
@@ -381,8 +399,8 @@ async function main(referenceImageParams, depthMapParams) {
                     
                     // 垂直方向
                     vec4 color2 = vec4(0.0);
-                    for(int i = 0; i < 5; i++) {
-                        float offset = offsets[i] * blurFactor * 0.015;
+                    for(int i = 0; i < 8; i++) {
+                        float offset = offsets[i] * blurFactor * 0.005;
                         color2 += texture2D(tex, uv + vec2(0.0, offset)) * weights[i];
                         color2 += texture2D(tex, uv - vec2(0.0, offset)) * weights[i];
                         total += weights[i] * 2.0;
@@ -395,13 +413,14 @@ async function main(referenceImageParams, depthMapParams) {
                     vec4 referenceColor = texture2D(referenceTexture, vUv);
                     
                     // 计算景深模糊
-                    float blurFactor = abs(vDepth - focusDistance) * dofStrength;
+                    float depthDiff = abs(vDepth - focusDistance);
+                    float blurFactor = pow(depthDiff, (0.25 - (0.05 * dofStrength)) ) * dofStrength; 
                     
                     // 应用优化后的高斯模糊
                     vec4 blurredColor = gaussianBlur(referenceTexture, vUv, blurFactor);
                     
                     // 调整亮度
-                    blurredColor.rgb *= 0.95; // 略微降低亮度
+                    blurredColor.rgb *= 0.99; // 略微降低亮度
                     
                     // 混合原始颜色和模糊颜色
                     gl_FragColor = mix(referenceColor, blurredColor, blurFactor);
@@ -409,7 +428,7 @@ async function main(referenceImageParams, depthMapParams) {
             `
         });
     
-        const planeGeometry = new THREE.PlaneGeometry(imageWidth, imageHeight, 200, 200);
+        const planeGeometry = new THREE.PlaneGeometry(imageWidth, imageHeight, 360, 360);
         currentDepthMesh = new THREE.Mesh(planeGeometry, depthMaterial);
         // 设置初始Z轴偏移时也要考虑深度强度
         const finalZOffset = currentZOffset - (currentDepthStrength * 5 / 2);
