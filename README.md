@@ -23,6 +23,7 @@ An enhanced ComfyUI depth map visualization tool that supports depth map preview
   - 景深强度：控制景深效果的强度 | DOF Strength: Control the intensity of depth of field effect
   - 对焦距离：调整景深对焦点的位置 | Focus Distance: Adjust the focus point position
   - Z轴偏移：调整场景在 Z 轴上的位置 | Z-Axis Offset: Adjust the scene position on Z-axis
+  - 相机FOV角：调整相机FOV角度 | Camera FOV angle: Adjust the camera FOV angle
 
 - **Quilt 图像生成 | Quilt Image Generation**
   - Quilt 数量：设置生成的 Quilt 图像数量 | Quilt Number: Set the number of Quilt images
@@ -78,6 +79,7 @@ git clone https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced.git
 - **深度强度 | Depth Strength**：范围 0-2，控制深度效果的强度 | Range 0-2, controls depth effect intensity
 - **景深强度 | DOF Strength**：范围 0-1，控制景深效果的强度 | Range 0-1, controls depth of field effect intensity
 - **对焦距离 | Focus Distance**：范围 0-1，调整景深对焦点的位置 | Range 0-1, adjusts focus point position
+- **相机FOV角 | Focus Distance**：范围 5-120，调整相机FOV角度 | Range 5-120, Camera FOV angle: Adjust the camera FOV angle
 - **Z轴偏移 | Z-Axis Offset**：范围 -5 到 5，调整场景在 Z 轴上的位置 | Range -5 to 5, adjusts scene position on Z-axis
 
 ### Quilt 设置 | Quilt Settings
