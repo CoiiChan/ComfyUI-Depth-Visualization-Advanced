@@ -4,8 +4,8 @@ import { api } from '../../scripts/api.js'
 // 硬编码配置
 const config = {
     paths: {
-        extension: '/extensions/ComfyUI-Depth-Visualization-advanced',
-        html: '/extensions/ComfyUI-Depth-Visualization-advanced/html'
+        extension: '/extensions/ComfyUI-Depth-Visualization-Advanced',
+        html: '/extensions/ComfyUI-Depth-Visualization-Advanced/html'
     },
     extensionName: 'ORANGESILVER.DepthViewerAndQuilts',
     node: {
