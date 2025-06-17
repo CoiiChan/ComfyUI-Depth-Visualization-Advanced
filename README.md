@@ -5,7 +5,7 @@ An enhanced ComfyUI depth map visualization tool that supports depth map preview
 
 ![Preview](https://github.com/CoiiChan/ComfyUI-Depth-Visualization-Advanced/blob/main/example/RGBD2QuiltsExample.png)
 
-[3D多视点应用示例页面shttps://coiichan.github.io/gyro3dweb](https://gyro3dweb.pages.dev/)
+[3D多视点应用示例页面(https://gyro3dweb.pages.dev/)
 
 
 ## 主要功能 | Main Features
